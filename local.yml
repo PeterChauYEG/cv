@@ -1,0 +1,5 @@
+name: cv2.7
+channels:
+  - conda-forge
+dependencies:
+  - opencv

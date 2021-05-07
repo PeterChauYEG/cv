@@ -1,0 +1,15 @@
+{
+  "name": "cv",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "env:create": "conda create --name cv2.7 python=2.7",
+    "env:activate": "conda activate cv2.7",
+    "env:install": "conda env update --file local.yml",
+    "ml:install": "cd model/pose/mpi && ./model/getModels.sh",
+    "start:camera": "python camera.py"
+  },
+  "author": "",
+  "license": "ISC"
+}
