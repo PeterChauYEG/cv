@@ -2,7 +2,7 @@ import cv2
 from pose import Pose
 
 #+++++++++++++===============================
-WINDOW = "ML SHIT 1"
+WINDOW = "ML SHIT"
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 500
 WINDOW_BRIGHTNESS = 150
@@ -19,9 +19,15 @@ class AI:
 
 # ============== DRAWING
 class Draw:
-    def updateImage(self, frame, cmd, draw_skeleton_flag, points):
+    def updateImage(self, frame, cmd, draw_skeleton_flag, points, current_cmd):
+        line_color = (66, 144, 245)
+
         if frame is None or frame.size == 0:
             return
+
+        # highlight skeleton when there is a cmd
+        if current_cmd != '':
+            line_color = (185, 66, 245)
 
         # Draw the detected skeleton points
         if draw_skeleton_flag == True:
@@ -35,7 +41,7 @@ class Draw:
                             frame,
                             points[partA],
                             points[partB],
-                            (66, 144, 245),
+                            line_color,
                             2)
 
                 # Draw points
@@ -100,7 +106,7 @@ class Camera:
                     cmd, draw_skeleton_flag, points = pose.detect(frame)
                     ai.update_cmd(cmd)
 
-                    draw.updateImage(frame, ai.cmd, draw_skeleton_flag, points)
+                    draw.updateImage(frame, ai.cmd, draw_skeleton_flag, points, cmd)
 
                 rval, frame = self.feed.read()
 
