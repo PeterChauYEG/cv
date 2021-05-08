@@ -47,27 +47,35 @@ class Draw:
                     thickness=-1,
                     lineType=cv2.FILLED)
 
-                # # Draw Labels
-                # cv2.putText(
-                #     frame,
-                #     "{}".format(i),
-                #     points[i],
-                #     cv2.FONT_HERSHEY_SIMPLEX,
-                #     0.75,
-                #     (245, 66, 227),
-                #     1,
-                #     lineType=cv2.LINE_AA)
+                # Draw Labels
+                cv2.putText(
+                    frame,
+                    "{}".format(i),
+                    points[i],
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.75,
+                    (245, 66, 227),
+                    1,
+                    lineType=cv2.LINE_AA)
 
         # DRAW COMMAND
+        cv2.putText(
+            frame,
+            'Drone AI',
+            (WINDOW_WIDTH / 20, WINDOW_HEIGHT / 10),
+            cv2.FONT_HERSHEY_PLAIN,
+            1.75,
+            (0, 0, 255),
+            2)
         if cmd != '':
             cv2.putText(
                 frame,
                 cmd,
-                (WINDOW_WIDTH / 20, WINDOW_HEIGHT / 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
+                (WINDOW_WIDTH / 20,( WINDOW_HEIGHT / 10) + 32),
+                cv2.FONT_HERSHEY_PLAIN,
+                1.5,
                 (0, 0, 255),
-                2)
+                1)
 
         cv2.imshow(WINDOW, frame)
 

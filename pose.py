@@ -76,9 +76,51 @@ class Pose:
         angle = int(math.atan2((start[1] - end[1]), (start[0] - end[0])) * 180 / math.pi)
         return angle
 
+    def is_arms_up_45(self):
+        """
+        Determine if the person is holding the arms
+        like:
+              \ | /
+                |
+               / \
+
+
+        :return: if the person detected moves both of his arms up for about 45 degrees
+        """
+        right = False
+        if self.points[2] and self.points[3] and self.points[4]:
+            # calculate the shoulder angle
+            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+
+            if 50 < shoulder_angle < 90:
+                elbow_angle = self.getAngle(self.points[3], self.points[4])
+                # if arm is straight
+                if abs(elbow_angle - shoulder_angle) < 25:
+                    right = True
+
+        left = False
+        if self.points[5] and self.points[6] and self.points[7]:
+            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            # correct the dimension
+            if shoulder_angle < 0:
+                shoulder_angle = shoulder_angle + 360
+
+            if 130 < shoulder_angle < 180:
+                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                if elbow_angle < 0:
+                    elbow_angle = elbow_angle + 360
+                # if arm is straight
+                if abs(elbow_angle - shoulder_angle) < 25:
+                    left = True
+
+        if left and right:
+            return True
+        else:
+            return False
+
     def is_arms_down_45(self):
         """
-        Determine if the person is holding  the arms
+        Determine if the person is holding the arms
         like:
                 |
               / | \
@@ -112,8 +154,8 @@ class Pose:
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     left = True
-        # If at least one arm meets the requirements, it is considered a successful capture
-        if left or right:
+
+        if left and right:
             return True
         else:
             return False
@@ -152,8 +194,8 @@ class Pose:
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 30:
                     left = True
-        # If at least one arm meets the requirements, it is considered a successful capture
-        if left or right:
+
+        if left and right:
             return True
         else:
             return False
@@ -187,8 +229,7 @@ class Pose:
                 if  90 < elbow_angle < 180:
                     left = True
 
-        # If at least one arm meets the requirements, it is considered a successful capture
-        if left or right:
+        if left and right:
             return True
         else:
             return False
@@ -247,6 +288,9 @@ class Pose:
                 elif pose == 'arm_V_cnt':
                     print '!!!arm V,land!!!'
                     self.cmd =  'land'
+                elif pose == 'is_arms_up_45':
+                    print '!!!arm up,take off!!!'
+                    self.cmd =  'takeoff'
 
             self.clear_detection_period_state()
 
@@ -265,6 +309,9 @@ class Pose:
 
         if self.is_arms_V():
             self.update_poses_captured('arm_V_cnt')
+
+        if self.is_arms_up_45():
+            self.update_poses_captured('is_arms_up_45')
 
     def handle_pose_points(self, output):
         # get shape of the output
