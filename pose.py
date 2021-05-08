@@ -63,33 +63,8 @@ poses = {
 class Pose:
     def __init__(self):
 
-        # read the path of the trained model of the neural network for pose recognition
-        self.protoFile = "model/pose/mpi/pose_deploy_linevec_faster_4_stages.prototxt"
-        self.weightsFile = "model/pose/mpi/pose_iter_160000.caffemodel"
-
-        # read the neural network of the pose recognition
-        self.net = cv2.dnn.readNetFromCaffe(self.protoFile, self.weightsFile)
-
-        # total number of the skeleton nodes
-        self.nPoints = 15
-
-        # init vars
-        self.frame_w = None
-        self.frame_h = None
-
-        # count the number of frames,and after every certain number of frames
-        # is read, frame_cnt will be cleared and recounted.
-        self.frame_cnt = 0
-
-        self.poses_captured = {}
-
-        # the period of pose reconigtion,it depends on your computer performance
-        self.period = 0
-
-        # record how many times the period of pose reconigtion is calculated.
-        self.period_calculate_cnt = 0
-        self.frame_cnt_threshold = 0
-        self.pose_captured_threshold = 0
+        # statics ============
+        self.prob_threshold = 0.05
 
         # input image dimensions for the network
         # IMPORTANT:
@@ -104,12 +79,40 @@ class Pose:
         self.input_w = 128
         self.input_h = 128
 
-        self.prob_threshold = 0.05
+        # total number of the skeleton nodes
+        self.nPoints = 15
 
-        # detection returrn
+        # read the path of the trained model of the neural network for pose recognition
+        self.protoFile = "model/pose/mpi/pose_deploy_linevec_faster_4_stages.prototxt"
+        self.weightsFile = "model/pose/mpi/pose_iter_160000.caffemodel"
+
+        # init vars ===========
+        # input frame
+        self.frame_w = None
+        self.frame_h = None
+
+        # count the number of frames
+        self.frame_cnt = 0
+
+        # posses detected
+        self.poses_captured = {}
+
+        # the period of pose reconigtion,it depends on your computer performance
+        self.period = 0
+
+        # record how many times the period of pose reconigtion called
+        self.period_calculate_cnt = 0
+        self.frame_cnt_threshold = 0
+        self.pose_captured_threshold = 0
+
+        # detection return
         self.draw_skeleton_flag = False
         self.cmd = ''
         self.points = []
+
+        # init ===============
+        # read the neural network of the pose recognition
+        self.net = cv2.dnn.readNetFromCaffe(self.protoFile, self.weightsFile)
 
     def getAngle(self, start, end):
         """
@@ -234,7 +237,7 @@ class Pose:
             # calculate the shoulder angle
             shoulder_angle = self.getAngle(self.points[2], self.points[3])
 
-            if 20 < shoulder_angle < 80:
+            if 23 < shoulder_angle < 67:
                 elbow_angle = self.getAngle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
@@ -247,7 +250,7 @@ class Pose:
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
-            if 120 < shoulder_angle < 180:
+            if 113 < shoulder_angle < 157:
                 elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
@@ -276,7 +279,7 @@ class Pose:
             # calculate the shoulder angle
             shoulder_angle = self.getAngle(self.points[2], self.points[3])
 
-            if -60 < shoulder_angle < -20:
+            if -67 < shoulder_angle < -23:
                 elbow_angle = self.getAngle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
@@ -289,7 +292,7 @@ class Pose:
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
-            if 200 < shoulder_angle < 240:
+            if 203 < shoulder_angle < 247:
                 elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
@@ -315,7 +318,7 @@ class Pose:
 
             shoulder_angle = self.getAngle(self.points[2], self.points[3])
             # if arm is flat
-            if -10 < shoulder_angle < 40:
+            if -22 < shoulder_angle < 22:
                 elbow_angle = self.getAngle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 30:
@@ -329,7 +332,7 @@ class Pose:
                 shoulder_angle = shoulder_angle + 360
 
             # if arm is flat
-            if 140 < shoulder_angle < 190:
+            if 158 < shoulder_angle < 202:
                 elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
@@ -355,7 +358,7 @@ class Pose:
         if self.points[2] and self.points[3] and self.points[4]:
             shoulder_angle = self.getAngle(self.points[2], self.points[3])
 
-            if -60 < shoulder_angle < -20:
+            if -67 < shoulder_angle < -23:
                 elbow_angle = self.getAngle(self.points[3], self.points[4])
                 if 0 < elbow_angle < 90 :
                     right = True
@@ -366,7 +369,7 @@ class Pose:
             # correct the  dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
-            if 200 < shoulder_angle < 240:
+            if 203 < shoulder_angle < 247:
                 elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if  90 < elbow_angle < 180:
                     left = True
@@ -435,15 +438,15 @@ class Pose:
         print "%d:%s captured" % (self.frame_cnt, key)
 
     def calculate_pose(self):
-        # if self.is_arms_down_45():
-        #     self.update_poses_captured(poses['arms_down_45'])
-        # elif self.is_arms_flat():
-        #     self.update_poses_captured(poses['arms_flat'])
-        # elif self.is_arms_V():
-        #     self.update_poses_captured(poses['arms_V'])
-        # elif self.is_arms_up_45():
-        #     self.update_poses_captured(poses['arms_up_45'])
-        if self.is_left_arm_up_45():
+        if self.is_arms_down_45():
+            self.update_poses_captured(poses['arms_down_45'])
+        elif self.is_arms_flat():
+            self.update_poses_captured(poses['arms_flat'])
+        elif self.is_arms_V():
+            self.update_poses_captured(poses['arms_V'])
+        elif self.is_arms_up_45():
+            self.update_poses_captured(poses['arms_up_45'])
+        elif self.is_left_arm_up_45():
             self.update_poses_captured(poses['left_arm_up_45'])
         elif self.is_right_arm_up_45():
             self.update_poses_captured(poses['right_arm_up_45'])
