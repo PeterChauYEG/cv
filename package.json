@@ -11,5 +11,8 @@
     "start:camera": "python camera.py"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "fb-watchman": "^2.0.1"
+  }
 }

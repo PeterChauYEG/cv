@@ -1,15 +1,13 @@
 import cv2
 from pose import Pose
 
-#+++++++++++++++
-
-WINDOW = "ML SHIT"
+#+++++++++++++===============================
+WINDOW = "ML SHIT 1"
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 500
 WINDOW_BRIGHTNESS = 150
 VIDEO_CAPTURE_DEVICE = 1
 POSE_PAIRS = [[0,1], [1,2], [2,3], [3,4], [1,5], [5,6], [6,7], [1,14], [14,8], [8,9], [9,10], [14,11], [11,12], [12,13] ]
-
 
 class AI:
     def __init__(self):
@@ -26,26 +24,8 @@ class Draw:
             return
 
         # Draw the detected skeleton points
-        for i in range(15):
-            if draw_skeleton_flag == True:
-                cv2.circle(
-                    frame,
-                    points[i],
-                    8,
-                    (0, 255, 255),
-                    thickness=-1,
-                    lineType=cv2.FILLED)
-
-                cv2.putText(
-                    frame,
-                    "{}".format(i),
-                    points[i],
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0, 0, 255),
-                    2,
-                    lineType=cv2.LINE_AA)
-
+        if draw_skeleton_flag == True:
+            for i in range(15):
                 # Draw Skeleton
                 for pair in POSE_PAIRS:
                     partA = pair[0]
@@ -55,15 +35,28 @@ class Draw:
                             frame,
                             points[partA],
                             points[partB],
-                            (0, 255, 255),
+                            (66, 144, 245),
                             2)
-                        cv2.circle(
-                            frame,
-                            points[partA],
-                            8,
-                            (0, 0, 255),
-                            thickness=-1,
-                            lineType=cv2.FILLED)
+
+                # Draw points
+                cv2.circle(
+                    frame,
+                    points[i],
+                    8,
+                    (185, 66, 245),
+                    thickness=-1,
+                    lineType=cv2.FILLED)
+
+                # # Draw Labels
+                # cv2.putText(
+                #     frame,
+                #     "{}".format(i),
+                #     points[i],
+                #     cv2.FONT_HERSHEY_SIMPLEX,
+                #     0.75,
+                #     (245, 66, 227),
+                #     1,
+                #     lineType=cv2.LINE_AA)
 
         # DRAW COMMAND
         if cmd != '':
@@ -94,8 +87,9 @@ class Camera:
 
             while True:
                 if frame is not None:
-                    preprocessed_frame = pose.preprocess(frame)
-                    cmd, draw_skeleton_flag, points = pose.detect(preprocessed_frame)
+                    # each frame, run detection
+                    # each period, return the move likely pose
+                    cmd, draw_skeleton_flag, points = pose.detect(frame)
                     ai.update_cmd(cmd)
 
                     draw.updateImage(frame, ai.cmd, draw_skeleton_flag, points)

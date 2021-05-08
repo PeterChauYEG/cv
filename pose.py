@@ -21,11 +21,15 @@ class Pose:
         self.protoFile = "model/pose/mpi/pose_deploy_linevec_faster_4_stages.prototxt"
         self.weightsFile = "model/pose/mpi/pose_iter_160000.caffemodel"
 
+        # read the neural network of the pose recognition
+        self.net = cv2.dnn.readNetFromCaffe(self.protoFile, self.weightsFile)
+
         # total number of the skeleton nodes
         self.nPoints = 15
 
-        # read the neural network of the pose recognition
-        self.net = cv2.dnn.readNetFromCaffe(self.protoFile, self.weightsFile)
+        # init vars
+        self.frame_w = None
+        self.frame_h = None
 
         # count the number of frames,and after every certain number of frames
         # is read, frame_cnt will be cleared and recounted.
@@ -36,10 +40,31 @@ class Pose:
 
         # the period of pose reconigtion,it depends on your computer performance
         self.period = 0
+
         # record how many times the period of pose reconigtion is calculated.
         self.period_calculate_cnt = 0
+        self.frame_cnt_threshold = 0
+        self.pose_captured_threshold = 0
 
+        # input image dimensions for the network
+        # IMPORTANT:
+        # Greater inWidth and inHeight will result in higher accuracy but longer process time
+        # Smaller inWidth and inHeight will result in lower accuracy but shorter process time
+        # Play around it by yourself to get best result!
+        # https://learnopencv.com/deep-learning-based-human-pose-estimation-using-opencv-cpp-python/
 
+        # og
+        # inWidth = 168
+        # inHeight = 168
+        self.input_w = 128
+        self.input_h = 128
+
+        self.prob_threshold = 0.05
+
+        # detection returrn
+        self.draw_skeleton_flag = False
+        self.cmd = ''
+        self.points = []
 
     def getAngle(self, start, end):
         """
@@ -172,13 +197,96 @@ class Pose:
         else:
             return False
 
-
     def preprocess(self, frame):
-        # if frame is None or frame.size == 0:
-        #     continue
-        # smoothing filter
         frame = cv2.bilateralFilter(frame, 5, 50, 100)
+
+        if self.frame_w is None or self.frame_h is None:
+            self.frame_w = frame.shape[1]
+            self.frame_h = frame.shape[0]
+
+        frame_blob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (self.input_w, self.input_h),
+                                        (0, 0, 0), swapRB=False, crop=False)
+        self.net.setInput(frame_blob)
+
         return frame
+
+    def calculate_period(self, period_starttime, period_endtime):
+        if self.period_calculate_cnt <= 5 :
+            self.period = self.period + period_endtime - period_starttime
+            self.period_calculate_cnt = self.period_calculate_cnt + 1
+        if self.period_calculate_cnt >= 6 :
+            self.period = self.period / 6
+
+    def set_detection_thresholds(self):
+        if self.period < 0.3:
+            self.frame_cnt_threshold = 5
+            self.pose_captured_threshold = 4
+        elif self.period >= 0.3 and self.period <0.6:
+            self.frame_cnt_threshold = 4
+            self.pose_captured_threshold = 3
+        elif self.period >= 0.6:
+            self.frame_cnt_threshold = 2
+            self.pose_captured_threshold = 2
+
+    def clear_detection_period_state(self):
+        self.frame_cnt = 0
+        self.arm_down_45_cnt = 0
+        self.arm_flat_cnt = 0
+        self.arm_V_cnt = 0
+
+    def clear_detection_state(self):
+        self.draw_skeleton_flag = False
+        self.cmd = ''
+        self.points = []
+
+    def calculate_period_cmd(self):
+        if self.frame_cnt >= self.frame_cnt_threshold:
+            if self.arm_down_45_cnt >= self.pose_captured_threshold:
+                print '!!!arm up,move back!!!'
+                self.cmd =  'moveback'
+            elif self.arm_flat_cnt >= self.pose_captured_threshold:
+                print '!!!arm down,moveforward!!!'
+                self.cmd =  'moveforward'
+            elif self.arm_V_cnt >= self.pose_captured_threshold :
+                print '!!!arm V,land!!!'
+                self.cmd =  'land'
+            self.clear_detection_period_state()
+
+    def calculate_pose(self):
+        if self.is_arms_down_45(self.points):
+            self.arm_down_45_cnt += 1
+            print "%d:arm down captured"%self.frame_cnt
+
+        if self.is_arms_flat(self.points):
+            self.arm_flat_cnt += 1
+            print "%d:arm up captured"%self.frame_cnt
+
+        if self.is_arms_V(self.points):
+            self.arm_V_cnt += 1
+            print '%d:arm V captured'%self.frame_cnt
+
+    def handle_pose_points(self, output):
+        # get shape of the output
+        H = output.shape[2]
+        W = output.shape[3]
+
+        for i in range(self.nPoints):
+            # confidence map of corresponding body's part.
+            probMap = output[0, i, :, :]
+
+            # Find global maxima of the probMap.
+            minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
+
+            # Scale the point to fit on the original image
+            x = (self.frame_w * point[0]) / W
+            y = (self.frame_h * point[1]) / H
+
+            if prob > self.prob_threshold:
+                self.points.append((int(x), int(y)))
+                self.draw_skeleton_flag = True
+            else:
+                self.points.append(None)
+                self.draw_skeleton_flag = False
 
     def detect(self, frame):
         """
@@ -191,107 +299,38 @@ class Pose:
                 cmd: the command to be received by Tello
                 points:the coordinates of the skeleton nodes
         """
-        frameWidth = frame.shape[1]
-        frameHeight = frame.shape[0]
+        period_starttime = 0
+        self.clear_detection_state()
 
-        frame_cnt_threshold = 0
-        prob_threshold = 0.05
-        pose_captured_threshold = 0
-
-        draw_skeleton_flag = False
-
-        # input image dimensions for the network
-        # IMPORTANT:
-        # Greater inWidth and inHeight will result in higher accuracy but longer process time
-        # Smaller inWidth and inHeight will result in lower accuracy but shorter process time
-        # Play around it by yourself to get best result!
-        # inWidth = 168
-        # inHeight = 168
-        inWidth = 84
-        inHeight = 84
-        inpBlob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (inWidth, inHeight),
-                                        (0, 0, 0), swapRB=False, crop=False)
-        self.net.setInput(inpBlob)
+        self.preprocess(frame)
 
         # get the output of the neural network and calculate the period of the process
-        period_starttime = time.time()
+        if self.period is 0:
+            period_starttime = time.time()
+
         output = self.net.forward()
-        period_endtime = time.time()
 
-        # calculation the period of pose reconigtion for 6 times,and get the average value
-        if self.period_calculate_cnt <= 5 :
-            self.period = self.period + period_endtime - period_starttime
-            self.period_calculate_cnt = self.period_calculate_cnt + 1
-            if self.period_calculate_cnt == 6 :
-                self.period = self.period / 6
+        if self.period is 0:
+            period_endtime = time.time()
 
-        H = output.shape[2]
-        W = output.shape[3]
+             # calculation the period of pose reconigtion for 6 times,and get the average value
+            self.calculate_period(period_starttime, period_endtime)
 
-        # Empty list to store the detected keypoints
-        points = []
+            # set the frame_cnt_threshold and pose_captured_threshold according to
+            # the period of the pose recognition
+            self.set_detection_thresholds()
 
-        for i in range(self.nPoints):
-            # confidence map of corresponding body's part.
-            probMap = output[0, i, :, :]
-
-            # Find global maxima of the probMap.
-            minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
-
-            # Scale the point to fit on the original image
-            x = (frameWidth * point[0]) / W
-            y = (frameHeight * point[1]) / H
-
-            if prob > prob_threshold:
-                points.append((int(x), int(y)))
-                draw_skeleton_flag = True
-            else:
-                points.append(None)
-                draw_skeleton_flag = False
+        # calculate the detected points
+        self.handle_pose_points(output)
 
         # check the captured pose
-        if self.is_arms_down_45(points):
-            self.arm_down_45_cnt += 1
-            print "%d:arm down captured"%self.frame_cnt
+        self.calculate_pose()
 
-        if self.is_arms_flat(points):
-            self.arm_flat_cnt += 1
-            print "%d:arm up captured"%self.frame_cnt
-
-        if self.is_arms_V(points):
-            self.arm_V_cnt += 1
-            print '%d:arm V captured'%self.frame_cnt
-
+        # inc frame counter
         self.frame_cnt += 1
-
-        # set the frame_cnt_threshold and pose_captured_threshold according to
-        # the period of the pose recognition
-        cmd = ''
-        if self.period < 0.3:
-            frame_cnt_threshold = 5
-            pose_captured_threshold = 4
-        elif self.period >= 0.3 and self.period <0.6:
-            frame_cnt_threshold = 4
-            pose_captured_threshold = 3
-        elif self.period >= 0.6:
-            frame_cnt_threshold = 2
-            pose_captured_threshold = 2
 
         # check whether pose control command are generated once for
         # certain times of pose recognition
-        if self.frame_cnt >= frame_cnt_threshold:
-            if self.arm_down_45_cnt >= pose_captured_threshold:
-                print '!!!arm up,move back!!!'
-                cmd =  'moveback'
-            if self.arm_flat_cnt >= pose_captured_threshold:
-                print '!!!arm down,moveforward!!!'
-                cmd =  'moveforward'
-            if self.arm_V_cnt == self.frame_cnt :
-                print '!!!arm V,land!!!'
-                cmd =  'land'
-            self.frame_cnt = 0
-            self.arm_down_45_cnt = 0
-            self.arm_flat_cnt = 0
-            self.arm_V_cnt = 0
+        self.calculate_period_cmd()
 
-        return cmd,draw_skeleton_flag,points
+        return self.cmd, self.draw_skeleton_flag, self.points
