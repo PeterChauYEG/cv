@@ -34,9 +34,8 @@ class Pose:
         # count the number of frames,and after every certain number of frames
         # is read, frame_cnt will be cleared and recounted.
         self.frame_cnt = 0
-        self.arm_down_45_cnt = 0 # count numbers of the arm_dowm_45 captured in every certain number of frames
-        self.arm_flat_cnt = 0    # count numbers of the arm_flat captured in every certain number of frames
-        self.arm_V_cnt = 0       # count numbers of the arm_V captured in every certain number of frames
+
+        self.poses_captured = {}
 
         # the period of pose reconigtion,it depends on your computer performance
         self.period = 0
@@ -77,7 +76,7 @@ class Pose:
         angle = int(math.atan2((start[1] - end[1]), (start[0] - end[0])) * 180 / math.pi)
         return angle
 
-    def is_arms_down_45(self, points):
+    def is_arms_down_45(self):
         """
         Determine if the person is holding  the arms
         like:
@@ -86,29 +85,28 @@ class Pose:
                / \
 
 
-        :param points: set of body key points
         :return: if the person detected moves both of his arms down for about 45 degrees
         """
         right = False
-        if points[2] and points[3] and points[4]:
+        if self.points[2] and self.points[3] and self.points[4]:
             # calculate the shoulder angle
-            shoulder_angle = self.getAngle(points[2], points[3])
+            shoulder_angle = self.getAngle(self.points[2], self.points[3])
 
             if -60 < shoulder_angle < -20:
-                elbow_angle = self.getAngle(points[3], points[4])
+                elbow_angle = self.getAngle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
 
         left = False
-        if points[5] and points[6] and points[7]:
-            shoulder_angle = self.getAngle(points[5], points[6])
+        if self.points[5] and self.points[6] and self.points[7]:
+            shoulder_angle = self.getAngle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 200 < shoulder_angle < 240:
-                elbow_angle = self.getAngle(points[6], points[7])
+                elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -120,36 +118,35 @@ class Pose:
         else:
             return False
 
-    def is_arms_flat(self, points):
+    def is_arms_flat(self):
         """
         Determine if the person moves his arm flat
         like: _ _|_ _
                  |
                 / \
-        :param points: set of body key points
         :return: if the person detected moves both of his arms flat
         """
         right = False
-        if points[2] and points[3] and points[4]:
+        if self.points[2] and self.points[3] and self.points[4]:
 
-            shoulder_angle = self.getAngle(points[2], points[3])
+            shoulder_angle = self.getAngle(self.points[2], self.points[3])
             # if arm is flat
             if -10 < shoulder_angle < 40:
-                elbow_angle = self.getAngle(points[3], points[4])
+                elbow_angle = self.getAngle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 30:
                     right = True
 
         left = False
-        if points[5] and points[6] and points[7]:
-            shoulder_angle = self.getAngle(points[5], points[6])
+        if self.points[5] and self.points[6] and self.points[7]:
+            shoulder_angle = self.getAngle(self.points[5], self.points[6])
             # correct the  dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             # if arm is flat
             if 140 < shoulder_angle < 190:
-                elbow_angle = self.getAngle(points[6], points[7])
+                elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -161,33 +158,32 @@ class Pose:
         else:
             return False
 
-    def is_arms_V(self, points):
+    def is_arms_V(self):
         """
         Determine if the person has his/her shoulder and elbow to a certain degree
         like:   |
               \/|\/
                / \
 
-        :param points: set of body key pointss
         """
         right = False
 
-        if points[2] and points[3] and points[4]:
-            shoulder_angle = self.getAngle(points[2], points[3])
+        if self.points[2] and self.points[3] and self.points[4]:
+            shoulder_angle = self.getAngle(self.points[2], self.points[3])
 
             if -60 < shoulder_angle < -20:
-                elbow_angle = self.getAngle(points[3], points[4])
+                elbow_angle = self.getAngle(self.points[3], self.points[4])
                 if 0 < elbow_angle < 90 :
                     right = True
 
         left = False
-        if points[5] and points[6] and points[7]:
-            shoulder_angle = self.getAngle(points[5], points[6])
+        if self.points[5] and self.points[6] and self.points[7]:
+            shoulder_angle = self.getAngle(self.points[5], self.points[6])
             # correct the  dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
             if 200 < shoulder_angle < 240:
-                elbow_angle = self.getAngle(points[6], points[7])
+                elbow_angle = self.getAngle(self.points[6], self.points[7])
                 if  90 < elbow_angle < 180:
                     left = True
 
@@ -230,9 +226,7 @@ class Pose:
 
     def clear_detection_period_state(self):
         self.frame_cnt = 0
-        self.arm_down_45_cnt = 0
-        self.arm_flat_cnt = 0
-        self.arm_V_cnt = 0
+        self.poses_captured = {}
 
     def clear_detection_state(self):
         self.draw_skeleton_flag = False
@@ -241,29 +235,36 @@ class Pose:
 
     def calculate_period_cmd(self):
         if self.frame_cnt >= self.frame_cnt_threshold:
-            if self.arm_down_45_cnt >= self.pose_captured_threshold:
-                print '!!!arm up,move back!!!'
-                self.cmd =  'moveback'
-            elif self.arm_flat_cnt >= self.pose_captured_threshold:
-                print '!!!arm down,moveforward!!!'
-                self.cmd =  'moveforward'
-            elif self.arm_V_cnt >= self.pose_captured_threshold :
-                print '!!!arm V,land!!!'
-                self.cmd =  'land'
+            if len(self.poses_captured) != 0:
+                pose = max(self.poses_captured, key = lambda k: self.poses_captured[k])
+
+                if pose == 'arm_down_45_cnt':
+                    print '!!!arm up,move back!!!'
+                    self.cmd =  'moveback'
+                elif pose == 'arm_flat_cnt':
+                    print '!!!arm down,moveforward!!!'
+                    self.cmd =  'moveforward'
+                elif pose == 'arm_V_cnt':
+                    print '!!!arm V,land!!!'
+                    self.cmd =  'land'
+
             self.clear_detection_period_state()
 
+    def update_poses_captured(self, key):
+        if self.poses_captured.has_key(key) == False:
+            self.poses_captured[key] = 0
+        self.poses_captured[key] += 1
+        print "%d:%s captured" % (self.frame_cnt, key)
+
     def calculate_pose(self):
-        if self.is_arms_down_45(self.points):
-            self.arm_down_45_cnt += 1
-            print "%d:arm down captured"%self.frame_cnt
+        if self.is_arms_down_45():
+            self.update_poses_captured('arm_down_45_cnt')
 
-        if self.is_arms_flat(self.points):
-            self.arm_flat_cnt += 1
-            print "%d:arm up captured"%self.frame_cnt
+        if self.is_arms_flat():
+            self.update_poses_captured('arm_flat_cnt')
 
-        if self.is_arms_V(self.points):
-            self.arm_V_cnt += 1
-            print '%d:arm V captured'%self.frame_cnt
+        if self.is_arms_V():
+            self.update_poses_captured('arm_V_cnt')
 
     def handle_pose_points(self, output):
         # get shape of the output
