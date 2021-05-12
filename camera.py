@@ -146,7 +146,7 @@ class Camera:
         self.window_height = None
 
         cv2.namedWindow(WINDOW)
-        cv2.moveWindow("win1", 20,20)
+        cv2.moveWindow(WINDOW, 600, 360) # do this dynaaimically
         self.feed = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
         self.feed.set(10, WINDOW_BRIGHTNESS)
         self.feed.set(3, WINDOW_WIDTH)
