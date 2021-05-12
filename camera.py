@@ -3,8 +3,8 @@ from pose import Pose
 
 # +++++++++++++===============================
 WINDOW = "ML SHIT"
-WINDOW_WIDTH = 1280 # write code to get and set frame w and h once on start
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = 600
+WINDOW_HEIGHT = 500
 WINDOW_BRIGHTNESS = 150
 VIDEO_CAPTURE_DEVICE = 0
 POSE_PAIRS = [[0, 1], [1, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [1, 14], [14, 8], [8, 9], [9, 10], [14, 11],
@@ -25,45 +25,23 @@ class AI:
 
 class Draw:
     def __init__(self):
-        pass
+        self.center_box_points = None
+        self.center_point = None
 
-    @staticmethod
-    def get_center_box_points(frame):
+    def get_center_box_points(self, frame):
         w = frame.shape[0]
         h = frame.shape[1]
 
-        center_point = (h / 2, w / 2,)
-        center_box_points = [
-            (center_point[0] - center_box_half_size, center_point[1] - center_box_half_size),
-            (center_point[0] + center_box_half_size, center_point[1] - center_box_half_size),
-            (center_point[0] + center_box_half_size, center_point[1] + center_box_half_size),
-            (center_point[0] - center_box_half_size, center_point[1] + center_box_half_size),
+        self.center_point = (h / 2, w / 2,)
+        self.center_box_points = [
+            (self.center_point[0] - center_box_half_size, self.center_point[1] - center_box_half_size),
+            (self.center_point[0] + center_box_half_size, self.center_point[1] - center_box_half_size),
+            (self.center_point[0] + center_box_half_size, self.center_point[1] + center_box_half_size),
+            (self.center_point[0] - center_box_half_size, self.center_point[1] + center_box_half_size),
         ]
-
-        return center_point, center_box_points
-
-    @staticmethod
-    def resize_frame(frame):
-        if frame is None or frame.size == 0:
-            return
-
-        scale_percent = 60
-        width = int(frame.shape[1] * scale_percent / 100)
-        height = int(frame.shape[0] * scale_percent / 100)
-        dim = (width, height)
-
-        # resize image
-        resized_frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
-
-        return resized_frame
 
     def update_image(self, frame, cmd, draw_skeleton_flag, points, current_cmd):
         line_color = (66, 144, 245)
-
-        if frame is None or frame.size == 0:
-            return
-
-        center_point, center_box_points = self.get_center_box_points(frame)
 
         # highlight skeleton when there is a cmd
         if current_cmd != '':
@@ -126,35 +104,35 @@ class Draw:
         # DRAW Center
         cv2.circle(
             frame,
-            center_point,
+            self.center_point,
             8,
             (255, 128, 245),
             thickness=-1,
             lineType=cv2.FILLED)
 
-# change line color if person is in box
+        # change line color if person is in box
         cv2.line(
             frame,
-            center_box_points[0],
-            center_box_points[1],
+            self.center_box_points[0],
+            self.center_box_points[1],
             (255, 128, 245),
             2)
         cv2.line(
             frame,
-            center_box_points[1],
-            center_box_points[2],
+            self.center_box_points[1],
+            self.center_box_points[2],
             (255, 128, 245),
             2)
         cv2.line(
             frame,
-            center_box_points[2],
-            center_box_points[3],
+            self.center_box_points[2],
+            self.center_box_points[3],
             (255, 128, 245),
             2)
         cv2.line(
             frame,
-            center_box_points[3],
-            center_box_points[0],
+            self.center_box_points[3],
+            self.center_box_points[0],
             (255, 128, 245),
             2)
 
@@ -164,31 +142,46 @@ class Draw:
 # ============== CAMERA
 class Camera:
     def __init__(self):
-        cv2.namedWindow(WINDOW)
+        self.window_width = None
+        self.window_height = None
 
+        cv2.namedWindow(WINDOW)
+        cv2.moveWindow("win1", 20,20)
         self.feed = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
+        self.feed.set(10, WINDOW_BRIGHTNESS)
         self.feed.set(3, WINDOW_WIDTH)
         self.feed.set(4, WINDOW_HEIGHT)
-        self.feed.set(10, WINDOW_BRIGHTNESS)
 
-    def start(self, pose, ai, draw):
+    def set_window_size(self, frame):
+        self.window_width = frame.shape[0]
+        self.window_height = frame.shape[0]
+        self.feed.set(3, self.window_width)
+        self.feed.set(4, self.window_height)
+
+    def start_feed(self, draw):
+        while self.feed.isOpened():
+            print('start feed loop')
+            rval, frame = self.feed.read()
+
+            if frame is not None:
+                self.set_window_size(frame)
+                draw.get_center_box_points(frame)
+                break
+
+    def process_feed(self, pose, ai, draw):
         while self.feed.isOpened():
             rval, frame = self.feed.read()
 
-            while True:
-                if frame is not None:
-                    # each frame, run detection
-                    # each period, return the move likely pose
-                    cmd, draw_skeleton_flag, points = pose.detect(frame)
-                    ai.update_cmd(cmd)
+            if frame is not None:
+                # each frame, run detection
+                # each period, return the move likely pose
+                cmd, draw_skeleton_flag, points = pose.detect(frame)
+                ai.update_cmd(cmd)
+                draw.update_image(frame, ai.cmd, draw_skeleton_flag, points, cmd)
 
-                    # resize_frame = draw.resize_frame(frame)
-                    draw.update_image(frame, ai.cmd, draw_skeleton_flag, points, cmd)
-
-                rval, frame = self.feed.read()
-
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                print('Exit')
+                break
 
 
 # ============== MAIN
@@ -198,7 +191,8 @@ def main():
     draw = Draw()
     camera = Camera()
 
-    camera.start(pose, ai, draw)
+    camera.start_feed(draw)
+    camera.process_feed(pose, ai, draw)
 
 
 if __name__ == "__main__":
