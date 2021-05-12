@@ -1,6 +1,7 @@
 import cv2
 import time
 import math
+
 '''
 Correspondence between the number of the skeleton node and 
 the human body:
@@ -47,18 +48,19 @@ poses = {
     'arms_V': 'arms_V',
     'arms_up_45': 'arms_up_45',
 
-    'left_arm_down_45': 'left_arm_down_45', # 225 202.5,247.5
-    'left_arm_flat': 'left_arm_flat', # 180 202.5,157.5
-    'left_arm_up_45': 'left_arm_up_45', # 135 157.5,112.5
+    'left_arm_down_45': 'left_arm_down_45',  # 225 202.5,247.5
+    'left_arm_flat': 'left_arm_flat',  # 180 202.5,157.5
+    'left_arm_up_45': 'left_arm_up_45',  # 135 157.5,112.5
 
-    'right_arm_down_45': 'right_arm_down_45', # -45 -67.5,-22.5
-    'right_arm_flat': 'right_arm_flat', # 0 -22.5,22.5
-    'right_arm_up_45': 'right_arm_up_45', # 45 67.5,22.5
+    'right_arm_down_45': 'right_arm_down_45',  # -45 -67.5,-22.5
+    'right_arm_flat': 'right_arm_flat',  # 0 -22.5,22.5
+    'right_arm_up_45': 'right_arm_up_45',  # 45 67.5,22.5
 
     # =======
-    'left_arm_v': 'left_arm_v', # 120 < shoulder_angle < 180
-    'right_arm_v': 'right_arm_v', # 20 < shoulder_angle < 80
+    'left_arm_v': 'left_arm_v',  # 120 < shoulder_angle < 180
+    'right_arm_v': 'right_arm_v',  # 20 < shoulder_angle < 80
 }
+
 
 class Pose:
     def __init__(self):
@@ -114,7 +116,8 @@ class Pose:
         # read the neural network of the pose recognition
         self.net = cv2.dnn.readNetFromCaffe(self.protoFile, self.weightsFile)
 
-    def getAngle(self, start, end):
+    @staticmethod
+    def get_angle(start, end):
         """
         Calculate the angle between start and end
 
@@ -129,13 +132,13 @@ class Pose:
         left = False
 
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 113 < shoulder_angle < 157:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -148,9 +151,9 @@ class Pose:
         right = False
 
         if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
             if 23 < shoulder_angle < 67:
-                elbow_angle = self.getAngle(self.points[2], self.points[3])
+                elbow_angle = self.get_angle(self.points[2], self.points[3])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
@@ -161,13 +164,13 @@ class Pose:
         left = False
 
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 203 < shoulder_angle < 247:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -180,9 +183,9 @@ class Pose:
         right = False
 
         if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
             if -67 < shoulder_angle < -23:
-                elbow_angle = self.getAngle(self.points[2], self.points[3])
+                elbow_angle = self.get_angle(self.points[2], self.points[3])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
@@ -193,13 +196,13 @@ class Pose:
         left = False
 
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 158 < shoulder_angle < 202:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -212,9 +215,9 @@ class Pose:
         right = False
 
         if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
             if -22 < shoulder_angle < 22:
-                elbow_angle = self.getAngle(self.points[2], self.points[3])
+                elbow_angle = self.get_angle(self.points[2], self.points[3])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
@@ -235,23 +238,23 @@ class Pose:
         right = False
         if self.points[2] and self.points[3] and self.points[4]:
             # calculate the shoulder angle
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
 
             if 23 < shoulder_angle < 67:
-                elbow_angle = self.getAngle(self.points[3], self.points[4])
+                elbow_angle = self.get_angle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
 
         left = False
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 113 < shoulder_angle < 157:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -277,23 +280,23 @@ class Pose:
         right = False
         if self.points[2] and self.points[3] and self.points[4]:
             # calculate the shoulder angle
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
 
             if -67 < shoulder_angle < -23:
-                elbow_angle = self.getAngle(self.points[3], self.points[4])
+                elbow_angle = self.get_angle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 25:
                     right = True
 
         left = False
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             if 203 < shoulder_angle < 247:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -316,24 +319,24 @@ class Pose:
         right = False
         if self.points[2] and self.points[3] and self.points[4]:
 
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
             # if arm is flat
             if -22 < shoulder_angle < 22:
-                elbow_angle = self.getAngle(self.points[3], self.points[4])
+                elbow_angle = self.get_angle(self.points[3], self.points[4])
                 # if arm is straight
                 if abs(elbow_angle - shoulder_angle) < 30:
                     right = True
 
         left = False
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the  dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
             # if arm is flat
             if 158 < shoulder_angle < 202:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
                 # if arm is straight
@@ -345,7 +348,7 @@ class Pose:
         else:
             return False
 
-    def is_arms_V(self):
+    def is_arms_v(self):
         """
         Determine if the person has his/her shoulder and elbow to a certain degree
         like:   |
@@ -356,22 +359,22 @@ class Pose:
         right = False
 
         if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.getAngle(self.points[2], self.points[3])
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
 
             if -67 < shoulder_angle < -23:
-                elbow_angle = self.getAngle(self.points[3], self.points[4])
-                if 0 < elbow_angle < 90 :
+                elbow_angle = self.get_angle(self.points[3], self.points[4])
+                if 0 < elbow_angle < 90:
                     right = True
 
         left = False
         if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.getAngle(self.points[5], self.points[6])
+            shoulder_angle = self.get_angle(self.points[5], self.points[6])
             # correct the  dimension
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
             if 203 < shoulder_angle < 247:
-                elbow_angle = self.getAngle(self.points[6], self.points[7])
-                if  90 < elbow_angle < 180:
+                elbow_angle = self.get_angle(self.points[6], self.points[7])
+                if 90 < elbow_angle < 180:
                     left = True
 
         if left and right:
@@ -387,23 +390,23 @@ class Pose:
             self.frame_h = frame.shape[0]
 
         frame_blob = cv2.dnn.blobFromImage(frame, 1.0 / 255, (self.input_w, self.input_h),
-                                        (0, 0, 0), swapRB=False, crop=False)
+                                           (0, 0, 0), swapRB=False, crop=False)
         self.net.setInput(frame_blob)
 
         return frame
 
-    def calculate_period(self, period_starttime, period_endtime):
-        if self.period_calculate_cnt <= 5 :
-            self.period = self.period + period_endtime - period_starttime
+    def calculate_period(self, period_start_time, period_end_time):
+        if self.period_calculate_cnt <= 5:
+            self.period = self.period + period_end_time - period_start_time
             self.period_calculate_cnt = self.period_calculate_cnt + 1
-        if self.period_calculate_cnt >= 6 :
+        if self.period_calculate_cnt >= 6:
             self.period = self.period / 6
 
     def set_detection_thresholds(self):
         if self.period < 0.3:
             self.frame_cnt_threshold = 5
             self.pose_captured_threshold = 4
-        elif self.period >= 0.3 and self.period <0.6:
+        elif 0.3 <= self.period < 0.6:
             self.frame_cnt_threshold = 4
             self.pose_captured_threshold = 3
         elif self.period >= 0.6:
@@ -422,7 +425,7 @@ class Pose:
     def calculate_period_cmd(self):
         if self.frame_cnt >= self.frame_cnt_threshold:
             if len(self.poses_captured) != 0:
-                pose = max(self.poses_captured, key = lambda k: self.poses_captured[k])
+                pose = max(self.poses_captured, key=lambda k: self.poses_captured[k])
 
                 # we need a map of pose to cmd
                 if pose != '':
@@ -432,7 +435,7 @@ class Pose:
             self.clear_detection_period_state()
 
     def update_poses_captured(self, key):
-        if self.poses_captured.has_key(key) == False:
+        if not self.poses_captured.has_key(key):
             self.poses_captured[key] = 0
         self.poses_captured[key] += 1
         print "%d:%s captured" % (self.frame_cnt, key)
@@ -442,7 +445,7 @@ class Pose:
             self.update_poses_captured(poses['arms_down_45'])
         elif self.is_arms_flat():
             self.update_poses_captured(poses['arms_flat'])
-        elif self.is_arms_V():
+        elif self.is_arms_v():
             self.update_poses_captured(poses['arms_V'])
         elif self.is_arms_up_45():
             self.update_poses_captured(poses['arms_up_45'])
@@ -493,22 +496,22 @@ class Pose:
                 cmd: the command to be received by Tello
                 points:the coordinates of the skeleton nodes
         """
-        period_starttime = 0
+        period_start_time = 0
         self.clear_detection_state()
 
         self.preprocess(frame)
 
         # get the output of the neural network and calculate the period of the process
         if self.period is 0:
-            period_starttime = time.time()
+            period_start_time = time.time()
 
         output = self.net.forward()
 
         if self.period is 0:
-            period_endtime = time.time()
+            period_end_time = time.time()
 
-             # calculation the period of pose reconigtion for 6 times,and get the average value
-            self.calculate_period(period_starttime, period_endtime)
+            # calculation the period of pose reconigtion for 6 times,and get the average value
+            self.calculate_period(period_start_time, period_end_time)
 
             # set the frame_cnt_threshold and pose_captured_threshold according to
             # the period of the pose recognition
