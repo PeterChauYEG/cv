@@ -9,8 +9,8 @@ WINDOW_BRIGHTNESS = 150
 VIDEO_CAPTURE_DEVICE = 0
 POSE_PAIRS = [[0, 1], [1, 2], [2, 3], [3, 4], [1, 5], [5, 6], [6, 7], [1, 14], [14, 8], [8, 9], [9, 10], [14, 11],
               [11, 12], [12, 13]]
-center_box_half_size = 128
-
+CENTER_BOX_HALF_SIZE = 128
+POSE_CENTERED_SENSITIVITY = 50
 
 class AI:
     def __init__(self):
@@ -19,6 +19,28 @@ class AI:
     def update_cmd(self, cmd):
         if cmd != '':
             self.cmd = cmd
+
+    @staticmethod
+    def get_is_points_in_box(points, center_point):
+        distance = {
+            "x": 0,
+            "y": 0
+        }
+
+        if center_point is not None and points is not None:
+            for point in points:
+                if point is not None:
+                    if point[0] < center_point[0] - CENTER_BOX_HALF_SIZE:
+                        distance['x'] = distance['x'] + (point[0] - (center_point[0] - CENTER_BOX_HALF_SIZE))
+                    elif point[0] > center_point[0] + CENTER_BOX_HALF_SIZE:
+                        distance['x'] = distance['x'] + (point[0] - (center_point[0] + CENTER_BOX_HALF_SIZE))
+
+                    if point[1] < center_point[1] - CENTER_BOX_HALF_SIZE:
+                        distance['y'] = distance['y'] + (point[1] - (center_point[1] - CENTER_BOX_HALF_SIZE))
+                    elif point[1] > center_point[1] + CENTER_BOX_HALF_SIZE:
+                        distance['y'] = distance['y'] + (point[1] - (center_point[1] + CENTER_BOX_HALF_SIZE))
+
+        return distance
 
 
 # ============== DRAWING
@@ -34,18 +56,24 @@ class Draw:
 
         self.center_point = (h / 2, w / 2,)
         self.center_box_points = [
-            (self.center_point[0] - center_box_half_size, self.center_point[1] - center_box_half_size),
-            (self.center_point[0] + center_box_half_size, self.center_point[1] - center_box_half_size),
-            (self.center_point[0] + center_box_half_size, self.center_point[1] + center_box_half_size),
-            (self.center_point[0] - center_box_half_size, self.center_point[1] + center_box_half_size),
+            (self.center_point[0] - CENTER_BOX_HALF_SIZE, self.center_point[1] - CENTER_BOX_HALF_SIZE),
+            (self.center_point[0] + CENTER_BOX_HALF_SIZE, self.center_point[1] - CENTER_BOX_HALF_SIZE),
+            (self.center_point[0] + CENTER_BOX_HALF_SIZE, self.center_point[1] + CENTER_BOX_HALF_SIZE),
+            (self.center_point[0] - CENTER_BOX_HALF_SIZE, self.center_point[1] + CENTER_BOX_HALF_SIZE),
         ]
 
-    def update_image(self, frame, cmd, draw_skeleton_flag, points, current_cmd):
-        line_color = (66, 144, 245)
+    def update_image(self, frame, cmd, draw_skeleton_flag, points, current_cmd, sum_of_absolute_distance):
+        pose_line_color = (66, 144, 245)
+        box_line_color = (0, 0, 245)
 
         # highlight skeleton when there is a cmd
         if current_cmd != '':
-            line_color = (185, 66, 245)
+            pose_line_color = (185, 66, 245)
+
+        # highlight box
+        if POSE_CENTERED_SENSITIVITY > sum_of_absolute_distance['x'] > -POSE_CENTERED_SENSITIVITY and POSE_CENTERED_SENSITIVITY > \
+                sum_of_absolute_distance['y'] > -POSE_CENTERED_SENSITIVITY:
+            box_line_color = (185, 66, 245)
 
         # Draw the detected skeleton points
         if draw_skeleton_flag:
@@ -59,7 +87,7 @@ class Draw:
                             frame,
                             points[partA],
                             points[partB],
-                            line_color,
+                            pose_line_color,
                             2)
 
                 # Draw points
@@ -106,7 +134,7 @@ class Draw:
             frame,
             self.center_point,
             8,
-            (255, 128, 245),
+            box_line_color,
             thickness=-1,
             lineType=cv2.FILLED)
 
@@ -115,25 +143,25 @@ class Draw:
             frame,
             self.center_box_points[0],
             self.center_box_points[1],
-            (255, 128, 245),
+            box_line_color,
             2)
         cv2.line(
             frame,
             self.center_box_points[1],
             self.center_box_points[2],
-            (255, 128, 245),
+            box_line_color,
             2)
         cv2.line(
             frame,
             self.center_box_points[2],
             self.center_box_points[3],
-            (255, 128, 245),
+            box_line_color,
             2)
         cv2.line(
             frame,
             self.center_box_points[3],
             self.center_box_points[0],
-            (255, 128, 245),
+            box_line_color,
             2)
 
         cv2.imshow(WINDOW, frame)
@@ -176,8 +204,10 @@ class Camera:
                 # each frame, run detection
                 # each period, return the move likely pose
                 cmd, draw_skeleton_flag, points = pose.detect(frame)
+                sum_of_absolute_distance = ai.get_is_points_in_box(points, draw.center_point)
                 ai.update_cmd(cmd)
-                draw.update_image(frame, ai.cmd, draw_skeleton_flag, points, cmd)
+
+                draw.update_image(frame, ai.cmd, draw_skeleton_flag, points, cmd, sum_of_absolute_distance)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 print('Exit')
