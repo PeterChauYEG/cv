@@ -128,7 +128,7 @@ class Pose:
         angle = int(math.atan2((start[1] - end[1]), (start[0] - end[0])) * 180 / math.pi)
         return angle
 
-    def is_left_arm_up_45(self):
+    def get_left_arm_position(self, min_angle, max_angle, is_straight, is_v = False):
         left = False
 
         if self.points[5] and self.points[6] and self.points[7]:
@@ -137,247 +137,89 @@ class Pose:
             if shoulder_angle < 0:
                 shoulder_angle = shoulder_angle + 360
 
-            if 113 < shoulder_angle < 157:
+            if min_angle < shoulder_angle < max_angle:
                 elbow_angle = self.get_angle(self.points[6], self.points[7])
                 if elbow_angle < 0:
                     elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    left = True
+
+                if is_straight:
+                    if abs(elbow_angle - shoulder_angle) < 25:
+                        left = True
+
+                if is_v:
+                    if 90 < elbow_angle < 180:
+                        left = True
 
         return left
+
+    def get_right_arm_position(self, min_angle, max_angle, is_straight, is_v = False):
+        right = False
+
+        if self.points[2] and self.points[3] and self.points[4]:
+            shoulder_angle = self.get_angle(self.points[2], self.points[3])
+            if min_angle < shoulder_angle < max_angle:
+                elbow_angle = self.get_angle(self.points[2], self.points[3])
+
+                if is_straight:
+                    if abs(elbow_angle - shoulder_angle) < 25:
+                        right = True
+
+                if is_v:
+                    if 0 < elbow_angle < 90:
+                        right = True
+
+        return right
+
+    def is_left_arm_up_45(self):
+        return self.get_left_arm_position(113, 157, True)
 
     def is_right_arm_up_45(self):
-        right = False
-
-        if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-            if 23 < shoulder_angle < 67:
-                elbow_angle = self.get_angle(self.points[2], self.points[3])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    right = True
-
-        return right
+        return self.get_right_arm_position(23, 67, True)
 
     def is_left_arm_down_45(self):
-        left = False
-
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-
-            if 203 < shoulder_angle < 247:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if elbow_angle < 0:
-                    elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    left = True
-
-        return left
+        return self.get_left_arm_position(203, 247, True)
 
     def is_right_arm_down_45(self):
-        right = False
-
-        if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-            if -67 < shoulder_angle < -23:
-                elbow_angle = self.get_angle(self.points[2], self.points[3])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    right = True
-
-        return right
+        return self.get_right_arm_position(-67, -23, True)
 
     def is_left_arm_flat(self):
-        left = False
-
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-
-            if 158 < shoulder_angle < 202:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if elbow_angle < 0:
-                    elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    left = True
-
-        return left
+        return self.get_left_arm_position(158, 202, True)
 
     def is_right_arm_flat(self):
-        right = False
-
-        if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-            if -22 < shoulder_angle < 22:
-                elbow_angle = self.get_angle(self.points[2], self.points[3])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    right = True
-
-        return right
+        return self.get_right_arm_position(-22, 22, True)
 
     def is_arms_up_45(self):
-        """
-        Determine if the person is holding the arms
-        like:
-              \ | /
-                |
-               / \
+        is_right_arm_in_position =  self.get_right_arm_position(23, 67, True)
+        is_left_arm_in_position = self.get_right_arm_position(113, 157, True)
 
-
-        :return: if the person detected moves both of his arms up for about 45 degrees
-        """
-        right = False
-        if self.points[2] and self.points[3] and self.points[4]:
-            # calculate the shoulder angle
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-
-            if 23 < shoulder_angle < 67:
-                elbow_angle = self.get_angle(self.points[3], self.points[4])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    right = True
-
-        left = False
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-
-            if 113 < shoulder_angle < 157:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if elbow_angle < 0:
-                    elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    left = True
-
-        if left and right:
+        if is_right_arm_in_position and is_left_arm_in_position:
             return True
         else:
             return False
 
     def is_arms_down_45(self):
-        """
-        Determine if the person is holding the arms
-        like:
-                |
-              / | \
-               / \
+        is_right_arm_in_position = self.get_right_arm_position(-67, -23, True)
+        is_left_arm_in_position = self.get_right_arm_position(203, 247, True)
 
-
-        :return: if the person detected moves both of his arms down for about 45 degrees
-        """
-        right = False
-        if self.points[2] and self.points[3] and self.points[4]:
-            # calculate the shoulder angle
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-
-            if -67 < shoulder_angle < -23:
-                elbow_angle = self.get_angle(self.points[3], self.points[4])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    right = True
-
-        left = False
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-
-            if 203 < shoulder_angle < 247:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if elbow_angle < 0:
-                    elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 25:
-                    left = True
-
-        if left and right:
+        if is_right_arm_in_position and is_left_arm_in_position:
             return True
         else:
             return False
 
     def is_arms_flat(self):
-        """
-        Determine if the person moves his arm flat
-        like: _ _|_ _
-                 |
-                / \
-        :return: if the person detected moves both of his arms flat
-        """
-        right = False
-        if self.points[2] and self.points[3] and self.points[4]:
+        is_right_arm_in_position =  self.get_right_arm_position(-22, 22, True)
+        is_left_arm_in_position = self.get_right_arm_position(158, 202, True)
 
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-            # if arm is flat
-            if -22 < shoulder_angle < 22:
-                elbow_angle = self.get_angle(self.points[3], self.points[4])
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 30:
-                    right = True
-
-        left = False
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the  dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-
-            # if arm is flat
-            if 158 < shoulder_angle < 202:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if elbow_angle < 0:
-                    elbow_angle = elbow_angle + 360
-                # if arm is straight
-                if abs(elbow_angle - shoulder_angle) < 30:
-                    left = True
-
-        if left and right:
+        if is_right_arm_in_position and is_left_arm_in_position:
             return True
         else:
             return False
 
     def is_arms_v(self):
-        """
-        Determine if the person has his/her shoulder and elbow to a certain degree
-        like:   |
-              \/|\/
-               / \
+        is_right_arm_in_position =  self.get_right_arm_position(-67, 23, False, True)
+        is_left_arm_in_position = self.get_right_arm_position(203, 247, False, True)
 
-        """
-        right = False
-
-        if self.points[2] and self.points[3] and self.points[4]:
-            shoulder_angle = self.get_angle(self.points[2], self.points[3])
-
-            if -67 < shoulder_angle < -23:
-                elbow_angle = self.get_angle(self.points[3], self.points[4])
-                if 0 < elbow_angle < 90:
-                    right = True
-
-        left = False
-        if self.points[5] and self.points[6] and self.points[7]:
-            shoulder_angle = self.get_angle(self.points[5], self.points[6])
-            # correct the  dimension
-            if shoulder_angle < 0:
-                shoulder_angle = shoulder_angle + 360
-            if 203 < shoulder_angle < 247:
-                elbow_angle = self.get_angle(self.points[6], self.points[7])
-                if 90 < elbow_angle < 180:
-                    left = True
-
-        if left and right:
+        if is_right_arm_in_position and is_left_arm_in_position:
             return True
         else:
             return False
