@@ -38,16 +38,16 @@ class GUI:
             (self.center_point[0] - CENTER_BOX_HALF_SIZE, self.center_point[1] + CENTER_BOX_HALF_SIZE),
         ]
 
-    def update_image(self, frame, cmd, draw_skeleton_flag, points, current_cmd, is_pose_in_box):
+    def update_image(self, frame, draw_skeleton_flag, points, ai):
         pose_line_color = NORMAL_COLOR
         box_line_color = NORMAL_COLOR
 
-        # highlight skeleton when there is a cmd
-        if current_cmd != '':
+        # highlight skeleton when there is a pose
+        if ai.current_pose != '':
             pose_line_color = ACTIVE_COLOR
 
         # highlight box
-        if is_pose_in_box:
+        if ai.is_pose_in_box:
             box_line_color = ACTIVE_COLOR
 
         # Draw the detected skeleton points
@@ -88,21 +88,22 @@ class GUI:
         # DRAW COMMAND
         cv2.putText(
             frame,
-            'Drone AI',
-            (16, 16),
+            'Detected pose: {0}'.format(ai.current_pose),
+            (16, 32),
             cv2.FONT_HERSHEY_PLAIN,
             1.75,
             NORMAL_COLOR,
             2)
-        if cmd != '':
-            cv2.putText(
-                frame,
-                cmd,
-                (16, 48),
-                cv2.FONT_HERSHEY_PLAIN,
-                1.5,
-                NORMAL_COLOR,
-                1)
+
+        # DRAW DRONE CMD
+        cv2.putText(
+            frame,
+            'Drone CMD: {0}'.format(ai.drone_cmd),
+            (16, 64),
+            cv2.FONT_HERSHEY_PLAIN,
+            1.75,
+            NORMAL_COLOR,
+            2)
 
         # DRAW Center
         cv2.circle(

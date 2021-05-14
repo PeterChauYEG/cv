@@ -97,7 +97,7 @@ class Pose:
         self.frame_cnt = 0
 
         # posses detected
-        self.poses_captured = {}
+        self.current_poses_captured = {}
 
         # the period of pose reconigtion,it depends on your computer performance
         self.period = 0
@@ -105,11 +105,11 @@ class Pose:
         # record how many times the period of pose reconigtion called
         self.period_calculate_cnt = 0
         self.frame_cnt_threshold = 0
-        self.pose_captured_threshold = 0
+        self.current_pose_captured_threshold = 0
 
         # detection return
         self.draw_skeleton_flag = False
-        self.cmd = ''
+        self.current_pose = ''
         self.points = []
 
         # init ===============
@@ -247,39 +247,38 @@ class Pose:
     def set_detection_thresholds(self):
         if self.period < 0.3:
             self.frame_cnt_threshold = 5
-            self.pose_captured_threshold = 4
+            self.current_pose_captured_threshold = 4
         elif 0.3 <= self.period < 0.6:
             self.frame_cnt_threshold = 4
-            self.pose_captured_threshold = 3
+            self.current_pose_captured_threshold = 3
         elif self.period >= 0.6:
             self.frame_cnt_threshold = 2
-            self.pose_captured_threshold = 2
+            self.current_pose_captured_threshold = 2
 
     def clear_detection_period_state(self):
         self.frame_cnt = 0
-        self.poses_captured = {}
+        self.current_poses_captured = {}
 
     def clear_detection_state(self):
         self.draw_skeleton_flag = False
-        self.cmd = ''
+        self.current_pose = ''
         self.points = []
 
-    def calculate_period_cmd(self):
+    def calculate_period_pose(self):
         if self.frame_cnt >= self.frame_cnt_threshold:
-            if len(self.poses_captured) != 0:
-                pose = max(self.poses_captured, key=lambda k: self.poses_captured[k])
+            if len(self.current_poses_captured) != 0:
+                self.current_pose = max(self.current_poses_captured, key=lambda k: self.current_poses_captured[k])
 
-                # we need a map of pose to cmd
-                if pose != '':
-                    print(pose)
-                    self.cmd = pose
+                # we need a map of pose to pose
+                if self.current_pose != '':
+                    print(self.current_pose)
 
             self.clear_detection_period_state()
 
     def update_poses_captured(self, key):
-        if not self.poses_captured.has_key(key):
-            self.poses_captured[key] = 0
-        self.poses_captured[key] += 1
+        if not self.current_poses_captured.has_key(key):
+            self.current_poses_captured[key] = 0
+        self.current_poses_captured[key] += 1
         print "%d:%s captured" % (self.frame_cnt, key)
 
     def calculate_pose(self):
@@ -335,7 +334,7 @@ class Pose:
         :return:
                 draw_skeleton_flag: the flag that indicates if the skeleton
                 are detected and depend if the skeleton is drawn on the pic
-                cmd: the command to be received by Tello
+                pose: the command to be received by Tello
                 points:the coordinates of the skeleton nodes
         """
         period_start_time = 0
@@ -370,6 +369,6 @@ class Pose:
 
         # check whether pose control command are generated once for
         # certain times of pose recognition
-        self.calculate_period_cmd()
+        self.calculate_period_pose()
 
-        return self.cmd, self.draw_skeleton_flag, self.points
+        return self.current_pose, self.draw_skeleton_flag, self.points

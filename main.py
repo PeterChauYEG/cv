@@ -9,14 +9,17 @@ from ai import AI
 def process_feed(pose, ai, gui, frame):
     # each frame, run detection
     # each period, return the move likely pose
-    cmd, gui_skeleton_flag, points = pose.detect(frame)
+    current_pose, gui_skeleton_flag, points = pose.detect(frame)
+    ai.update_current_pose(current_pose)
 
-    sum_of_distance = ai.get_sum_of_distance(points, gui.center_point)
-    ai.get_is_pose_in_box(sum_of_distance)
-    ai.update_cmd(cmd)
+    ai.get_sum_of_distance(points, gui.center_point)
+    ai.get_is_pose_in_box()
 
-    gui.update_image(frame, ai.cmd, gui_skeleton_flag, points, cmd, ai.is_pose_in_box)
+    ai.calculate_drone_cmd()
 
+    gui.update_image(frame, gui_skeleton_flag, points, ai)
+
+    ai.reset_state()
 
 def main():
     ai = AI()
